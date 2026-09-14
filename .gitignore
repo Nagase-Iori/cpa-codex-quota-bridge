@@ -1,0 +1,22 @@
+# Local configuration and credentials
+config.json
+sync.json
+*.auth.json
+*.db
+*.db-*
+*.sqlite
+*.sqlite-*
+.env
+
+# Runtime files
+*.log
+*.lock
+__pycache__/
+*.py[cod]
+
+# Local/editor files
+.venv/
+.idea/
+.vscode/
+*.swp
+Thumbs.db

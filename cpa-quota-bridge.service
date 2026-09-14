@@ -1,0 +1,21 @@
+[Unit]
+Description=Read-only CPA quota bridge for CC Switch
+After=network-online.target cliproxyapi.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=cliproxy
+Group=cliproxy
+WorkingDirectory=/opt/cpa-quota-bridge
+ExecStart=/usr/bin/python3 /opt/cpa-quota-bridge/cpa_quota_bridge.py --config /etc/cpa-quota-bridge/config.json
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadOnlyPaths=/opt/cliproxyapi/data/credit-manager
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,22 @@
+{
+  "success": true,
+  "source": "CPA live Codex quota",
+  "plan": "ChatGPT/Codex",
+  "queried_at": "2026-01-01T00:00:00Z",
+  "stale": false,
+  "last_error": "",
+  "windows": [
+    {
+      "label": "5小时",
+      "used_percent": 13.0,
+      "remaining_percent": 87.0,
+      "resets_at": "2026-01-01T03:40:00Z"
+    },
+    {
+      "label": "7天",
+      "used_percent": 67.0,
+      "remaining_percent": 33.0,
+      "resets_at": "2026-01-08T00:00:00Z"
+    }
+  ]
+}

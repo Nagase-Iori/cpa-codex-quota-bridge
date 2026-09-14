@@ -1,0 +1,10 @@
+{
+  "database": "/opt/cliproxyapi/data/credit-manager/credit-manager.db",
+  "auth_file": "/opt/cliproxyapi/auth/ACCOUNT_AUTH_FILE.json",
+  "auth_id": "ACCOUNT_AUTH_FILE.json",
+  "provider": "codex",
+  "quota_url": "https://chatgpt.com/backend-api/wham/usage",
+  "proxy_url": "http://127.0.0.1:2016",
+  "timeout_seconds": 12,
+  "lock_file": "/opt/cpa-quota-bridge/credit-manager-quota-sync.lock"
+}

@@ -1,0 +1,25 @@
+# Replace quota.example.com with a domain you control.
+# Keep the quota endpoint protected by a long, randomly generated API key.
+quota.example.com {
+    @quota path /ccs/quota
+    handle @quota {
+        reverse_proxy 127.0.0.1:8765
+    }
+
+    handle {
+        respond "Not Found" 404
+    }
+}
+
+# Optional: put CPA's OpenAI-compatible API on a separate hostname.
+# Do not expose CPA's management port directly to the Internet.
+api.example.com {
+    @api path /v1/*
+    handle @api {
+        reverse_proxy 127.0.0.1:8317
+    }
+
+    handle {
+        respond "Not Found" 404
+    }
+}

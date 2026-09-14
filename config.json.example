@@ -1,0 +1,15 @@
+{
+  "listen_host": "127.0.0.1",
+  "listen_port": 8765,
+  "endpoint": "/ccs/quota",
+  "database": "/opt/cliproxyapi/data/credit-manager/credit-manager.db",
+  "auth_file": "/opt/cliproxyapi/auth/ACCOUNT_AUTH_FILE.json",
+  "quota_url": "https://chatgpt.com/backend-api/wham/usage",
+  "proxy_url": "http://127.0.0.1:2016",
+  "live_timeout_seconds": 12,
+  "live_cache_seconds": 20,
+  "max_stale_seconds": 1800,
+  "default_auth_id": "ACCOUNT_AUTH_FILE.json",
+  "allowed_key_hashes": [],
+  "key_mappings": {}
+}

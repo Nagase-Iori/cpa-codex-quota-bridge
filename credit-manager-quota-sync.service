@@ -1,0 +1,16 @@
+[Unit]
+Description=Refresh CLIProxyAPI Credit Manager Codex quota
+After=network-online.target mihomo.service cliproxyapi.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=cliproxy
+Group=cliproxy
+WorkingDirectory=/opt/cpa-quota-bridge
+ExecStart=/usr/bin/python3 /opt/cpa-quota-bridge/credit_manager_quota_sync.py --config /etc/cpa-quota-bridge/sync.json
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/opt/cliproxyapi/data/credit-manager /opt/cpa-quota-bridge
