@@ -184,13 +184,20 @@ windows[*].label
 windows[*].used_percent
 windows[*].remaining_percent
 windows[*].resets_at
+windows[*].remaining_seconds
+windows[*].reset_in
 ```
 
 把 `label` 映射为名称，把 `used_percent` 映射为已使用百分比，把
-`remaining_percent` 映射为剩余百分比，把 `resets_at` 映射为重置时间。
+`remaining_percent` 映射为剩余百分比，把 `resets_at` 映射为官方重置时间，把
+`reset_in` 映射为倒计时，把 `remaining_seconds` 映射为倒计时秒数。
+`resets_at` 始终使用带 `Z` 的 UTC ISO-8601 时间，例如
+`2026-09-14T10:53:49Z`；`reset_in` 是桥接器在每次响应时重新计算的相对倒计时，
+因此不会受到服务器或 CCS 所在设备时区影响。
 不同 CCS 版本的“自定义查询”界面字段名可能不同；仓库里的
 `examples/quota-response.json` 可用来对照 JSONPath。若 CCS 版本只接受脚本，
-让脚本请求该 URL 后读取 `windows` 数组，不要在脚本中硬编码真实 Key。
+让脚本请求该 URL 后读取 `windows` 数组，并把 `reset_in` 放入 CCS 的扩展显示字段，
+不要在脚本中硬编码真实 Key。
 
 本地测试（只在服务器执行）：
 

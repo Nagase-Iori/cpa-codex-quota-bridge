@@ -42,6 +42,40 @@ def iso_time(value: Any) -> str | None:
         return None
 
 
+def countdown_seconds(resets_at: str | None) -> int | None:
+    """Return seconds until an ISO-8601 reset time, using UTC internally."""
+    if not resets_at:
+        return None
+    try:
+        reset = datetime.fromisoformat(resets_at.replace("Z", "+00:00"))
+        return max(0, int((reset - utc_now()).total_seconds()))
+    except (TypeError, ValueError, OverflowError):
+        return None
+
+
+def countdown_label(seconds: int | None) -> str | None:
+    """Format a compact, timezone-independent countdown for CCS."""
+    if seconds is None:
+        return None
+    minutes = seconds // 60
+    days, day_remainder = divmod(minutes, 24 * 60)
+    hours, remaining_minutes = divmod(day_remainder, 60)
+    if days:
+        return f"{days}d{hours}h"
+    if hours:
+        return f"{hours}h{remaining_minutes}m"
+    return f"{remaining_minutes}m"
+
+
+def decorate_window(window: dict[str, Any]) -> dict[str, Any]:
+    """Add a fresh countdown without changing the canonical UTC reset time."""
+    decorated = dict(window)
+    seconds = countdown_seconds(decorated.get("resets_at"))
+    decorated["remaining_seconds"] = seconds
+    decorated["reset_in"] = countdown_label(seconds)
+    return decorated
+
+
 def number(value: Any) -> float | None:
     try:
         result = float(value)
@@ -250,7 +284,7 @@ class QuotaStore:
                     "queried_at": self._live_cache[str(auth_id)][2],
                     "stale": False,
                     "last_error": "",
-                    "windows": live_windows,
+                    "windows": [decorate_window(window) for window in live_windows],
                 }
 
             try:
@@ -288,7 +322,7 @@ class QuotaStore:
                 "queried_at": queried_at,
                 "stale": True,
                 "last_error": live_error or str(last_error or "") or "live quota unavailable",
-                "windows": windows,
+                "windows": [decorate_window(window) for window in windows],
             }
 
 

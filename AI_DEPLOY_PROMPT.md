@@ -51,9 +51,10 @@
 6. 配置 Caddy：只把 /ccs/quota 反代到 127.0.0.1:8765；如需 CPA API，单独反代
    /v1 到 127.0.0.1:8317；不要暴露 CPA 管理端口。
 7. 用 HTTPS 域名和一个额度查询 Key 测试 /health 与 /ccs/quota，验证返回
-   windows[*].label、used_percent、remaining_percent、resets_at。
+   windows[*].label、used_percent、remaining_percent、resets_at、reset_in、
+   remaining_seconds。
 8. 给出 CCS 配置：GET <HTTPS域名>/ccs/quota，Authorization: Bearer <设备专用Key>，
-   并将上述四个字段映射到 CCS 的用量显示。说明 5 小时/7 天是官方 rolling
+   并将上述字段映射到 CCS 的用量显示，优先将 reset_in 映射为倒计时。说明 5 小时/7 天是官方 rolling
    rate-limit 窗口，CCS pricing 文件负责价格估算，两者不是同一项数据。
 9. 最后列出已安装服务、timer 下次运行时间、测试结果和备份路径。若网络、TLS、
    auth 或数据库结构失败，停止并报告原因，不要删除原配置或数据库。
