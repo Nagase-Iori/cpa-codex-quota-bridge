@@ -5,6 +5,8 @@
   "database": "/opt/cliproxyapi/data/credit-manager/credit-manager.db",
   "auth_file": "/opt/cliproxyapi/auth/ACCOUNT_AUTH_FILE.json",
   "quota_url": "https://chatgpt.com/backend-api/wham/usage",
+  "tps_url": "http://127.0.0.1:8317/v0/resource/plugins/cap-token-usage-tracker/requests?limit=25&offset=0",
+  "tps_timeout_seconds": 4,
   "proxy_url": "http://127.0.0.1:2016",
   "live_timeout_seconds": 12,
   "live_cache_seconds": 20,

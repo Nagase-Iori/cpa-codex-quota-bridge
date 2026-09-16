@@ -5,6 +5,12 @@
   "queried_at": "2026-01-01T00:00:00Z",
   "stale": false,
   "last_error": "",
+  "latest_tps": {
+    "tps": 85.5,
+    "model": "example-model",
+    "requested_at": "2026-01-01T00:02:00Z",
+    "age_seconds": 30
+  },
   "windows": [
     {
       "label": "5小时",

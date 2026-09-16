@@ -4,7 +4,8 @@
 The bridge prefers a live Codex quota request using the credential already
 stored by CLIProxyAPI, then falls back to a sanitized Credit Manager snapshot.
 It never returns or logs OAuth tokens or the CPA management key. The public
-endpoint only returns normalized percentage windows.
+endpoint only returns normalized percentage windows and an optional latest TPS
+summary from the local CAP Token Usage Tracker.
 """
 
 from __future__ import annotations
@@ -65,6 +66,19 @@ def countdown_label(seconds: int | None) -> str | None:
     if hours:
         return f"{hours}h{remaining_minutes}m"
     return f"{remaining_minutes}m"
+
+
+def age_seconds(value: Any) -> int | None:
+    """Return the age of an RFC3339 timestamp without exposing request data."""
+    if not isinstance(value, str) or not value.strip():
+        return None
+    try:
+        timestamp = datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
+        if timestamp.tzinfo is None:
+            timestamp = timestamp.replace(tzinfo=timezone.utc)
+        return max(0, int((utc_now() - timestamp).total_seconds()))
+    except (TypeError, ValueError, OverflowError):
+        return None
 
 
 def decorate_window(window: dict[str, Any]) -> dict[str, Any]:
@@ -240,6 +254,73 @@ class QuotaStore:
             return configured or None
         return "__unauthorized__"
 
+    def _latest_tps(self) -> dict[str, Any] | None:
+        """Read the newest successful request TPS from CAP Token Usage Tracker.
+
+        This is intentionally best-effort: a missing or unavailable tracker must
+        never make the quota endpoint fail. The tracker endpoint is local-only;
+        the public surface remains the existing authenticated bridge endpoint.
+        """
+        url = str(
+            self.config.get(
+                "tps_url",
+                "http://127.0.0.1:8317/v0/resource/plugins/"
+                "cap-token-usage-tracker/requests?limit=25&offset=0",
+            )
+        ).strip()
+        if not url:
+            return None
+
+        request = Request(
+            url,
+            headers={"Accept": "application/json"},
+            method="GET",
+        )
+        try:
+            opener = build_opener(ProxyHandler({}))
+            with opener.open(
+                request, timeout=max(1, int(self.config.get("tps_timeout_seconds", 4)))
+            ) as response:
+                payload = json.loads(response.read().decode("utf-8"))
+        except (HTTPError, OSError, URLError, TimeoutError, ValueError, TypeError):
+            return None
+
+        items = payload.get("items") if isinstance(payload, dict) else None
+        if not isinstance(items, list):
+            return None
+
+        candidates: list[tuple[tuple[int, float | str], dict[str, Any]]] = []
+        for item in items:
+            if not isinstance(item, dict) or bool(item.get("failed")):
+                continue
+            tps = number(item.get("tps"))
+            if tps is None or tps <= 0:
+                continue
+            sequence = number(item.get("sequence"))
+            requested_at = str(item.get("time") or "").strip()
+            # CAP normally returns newest-first and includes sequence. Sorting
+            # here also keeps the result correct if the endpoint order changes.
+            sort_key: tuple[int, float | str]
+            if sequence is not None:
+                sort_key = (1, sequence)
+            else:
+                sort_key = (0, requested_at)
+            candidates.append(
+                (
+                    sort_key,
+                    {
+                        "tps": round(tps, 3),
+                        "model": str(item.get("model") or "").strip(),
+                        "requested_at": requested_at or None,
+                        "age_seconds": age_seconds(requested_at),
+                    },
+                )
+            )
+
+        if not candidates:
+            return None
+        return max(candidates, key=lambda candidate: candidate[0])[1]
+
     def read(self, bearer: str) -> tuple[int, dict[str, Any]]:
         with self._lock:
             selected_auth = self._authorized_auth_id(bearer)
@@ -275,9 +356,10 @@ class QuotaStore:
                 return 503, {"success": False, "message": "quota snapshot unavailable"}
 
             auth_id, raw_snapshot, last_success_ms, last_error = rows[0]
+            latest_tps = self._latest_tps()
             live_windows, live_error = self._live_quota(str(auth_id))
             if live_windows:
-                return 200, {
+                payload = {
                     "success": True,
                     "source": "CPA live Codex quota",
                     "plan": "ChatGPT/Codex",
@@ -286,6 +368,9 @@ class QuotaStore:
                     "last_error": "",
                     "windows": [decorate_window(window) for window in live_windows],
                 }
+                if latest_tps is not None:
+                    payload["latest_tps"] = latest_tps
+                return 200, payload
 
             try:
                 snapshot = json.loads(raw_snapshot or "{}")
@@ -315,7 +400,7 @@ class QuotaStore:
                 except ValueError:
                     stale = True
 
-            return 200, {
+            payload = {
                 "success": True,
                 "source": "CPA Credit Manager",
                 "plan": snapshot.get("plan") or "ChatGPT/Codex",
@@ -324,6 +409,9 @@ class QuotaStore:
                 "last_error": live_error or str(last_error or "") or "live quota unavailable",
                 "windows": [decorate_window(window) for window in windows],
             }
+            if latest_tps is not None:
+                payload["latest_tps"] = latest_tps
+            return 200, payload
 
 
 class Handler(BaseHTTPRequestHandler):

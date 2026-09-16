@@ -13,7 +13,8 @@ CCS custom usage query
           ▼
   cpa_quota_bridge.py ── live ──► chatgpt.com/backend-api/wham/usage
           │                         (可经本机 Mihomo/Clash)
-          └── fallback ──► CPA Credit Manager sanitized snapshot
+          ├── fallback ──► CPA Credit Manager sanitized snapshot
+          └── local read ──► CAP Token Usage Tracker latest completed TPS
 
 credit-manager-quota-sync.timer ──► 定时刷新 Credit Manager 快照
 ```
@@ -24,7 +25,8 @@ credit-manager-quota-sync.timer ──► 定时刷新 Credit Manager 快照
   OAuth 凭据或数据库。
 - 真实域名、服务器 IP、API Key、CPA 管理密钥、`access_token`、`refresh_token`、
   订阅链接和日志都必须留在服务器上，不能提交到 Git。
-- 桥接接口只返回额度窗口，不返回 OAuth Token，也不会记录 `Authorization` 请求头。
+- 桥接接口只返回额度窗口和可选的最近一次成功请求 TPS，不返回 OAuth Token，
+  也不会记录 `Authorization` 请求头。
 - 这里的 API Key 是“访问额度接口的密钥”，不是 ChatGPT OAuth Token。建议为每台
   设备/每个 CCS provider 使用不同的随机 Key，并只保存 SHA-256 哈希。
 - 额度属于对应的官方账号，不是按请求逐次计费的 token 账单；5 小时和 7 天是官方
@@ -75,6 +77,9 @@ sudo install -o root -g root -m 0644 credit-manager-quota-sync.timer \
 - `auth_file`：CPA 服务器上真实 OAuth 文件的绝对路径；
 - `auth_id`：Credit Manager 表中与该文件对应的 `auth_id`；
 - `database`：当前 CPA Credit Manager 数据库路径；
+- `tps_url`：CPA 本机 CAP Token Usage Tracker 的请求明细接口；默认读取最近 25 条，
+  只挑选最新一条成功且 TPS 大于 0 的记录；
+- `tps_timeout_seconds`：读取 TPS 的本机接口超时时间；读取失败不会影响额度查询；
 - `proxy_url`：本机 Mihomo/Clash HTTP 代理地址，或填写 `direct`；
 - `default_auth_id`：单账号时可填写同一个 `auth_id`；多账号时留空并使用
   `key_mappings`。
@@ -186,6 +191,10 @@ windows[*].remaining_percent
 windows[*].resets_at
 windows[*].remaining_seconds
 windows[*].reset_in
+latest_tps.tps
+latest_tps.model
+latest_tps.requested_at
+latest_tps.age_seconds
 ```
 
 把 `label` 映射为名称，把 `used_percent` 映射为已使用百分比，把
@@ -198,6 +207,10 @@ windows[*].reset_in
 `examples/quota-response.json` 可用来对照 JSONPath。若 CCS 版本只接受脚本，
 让脚本请求该 URL 后读取 `windows` 数组，并把 `reset_in` 放入 CCS 的扩展显示字段，
 不要在脚本中硬编码真实 Key。
+
+`latest_tps` 是最近一条已完成、成功且有有效 TPS 的请求；它不是正在生成中的
+实时速度。没有符合条件的记录时，桥接响应会省略该字段。CCS 自定义脚本可以把
+它格式化后放入 `extra`，例如“最近 TPS 85（example-model）”。
 
 本地测试（只在服务器执行）：
 
